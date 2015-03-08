@@ -1,3 +1,4 @@
 *.o
 *.a
 src_nucleo_f401re/bin/
+emulator/azipov_emu
