@@ -1,0 +1,17 @@
+mbed:     a94eb663dc (mbed_lib_rev91)
+freertos: 2139e96793 (v3.6)
+
+make
+    create release hex file
+
+make debug
+    create debug hex file
+
+make deploy
+    flash board (hex has to be created first) with openocd
+
+make openocd
+    start openocd server in order to connect debugger
+
+make ddd
+    start ddd configured to debug target

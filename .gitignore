@@ -1,0 +1,3 @@
+*.o
+*.a
+src_nucleo_f401re/bin/
