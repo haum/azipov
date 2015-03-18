@@ -218,6 +218,38 @@ void idle() {
 	glutPostRedisplay();
 }
 
+/** Print usage message **/
+void usage() {
+	std::cout << "This is a little AziPOV emulator" << std::endl
+	          << "    --animated      starts program with animation in play" << std::endl
+	          << "    --no-trace      starts program with led trace disabled" << std::endl
+	          << "    --width <w>     starts window with a specified width" << std::endl
+	          << "    --height <h>    starts window with a specified height" << std::endl
+	          << std::endl
+	          << "    --da <da>       angular resolution in degrees" << std::endl
+	          << "    --a <a>         size of inner wheel" << std::endl
+	          << "    --b <b>         size of outer wheel" << std::endl
+	          << "    --dh <dh>       vertical resolution" << std::endl
+	          << "    --h <h>         length of led bars" << std::endl
+	          << "    --nr <nr>       number of wheels" << std::endl
+	          << std::endl
+	          << "    --led|-l <led>  add a led (see below)" << std::endl
+	          << std::endl
+	          << std::endl
+	          << "A led is described in following syntax: [wheel:]radius[@angle]" << std::endl
+	          << "e.g. 1:5@120 is a led on wheel number 1 located at a distance of 5 and an angle of 120 degrees" << std::endl
+	          << std::endl
+	          << "Sample command line: --h 0 --animated --no-trace --a 2 --b 2 --nr 3 -l 4@120 -l 1:4@240 -l 2:4" << std::endl
+	          << std::endl
+	          << "Orientation is chosen by draging mouse on window" << std::endl
+	          << "Zoom is chosen by clicking on window (more zoom on top of window)" << std::endl
+	          << "Key \"t\" change trace status" << std::endl
+	          << "Key \"ESC\" closes emulator" << std::endl
+	          << "Key \"SPACE\" change animation status" << std::endl
+	          << std::endl
+	          << "Have fun" << std::endl;
+}
+
 /** Parse options **/
 int parse_options(int argc, char * argv[]) {
 	// Generic parameters
@@ -237,6 +269,7 @@ int parse_options(int argc, char * argv[]) {
 		{"no-trace", no_argument, 0, 0x02},
 		{"width", required_argument, 0, 0x03},
 		{"height", required_argument, 0, 0x04},
+		{"help", no_argument, 0, 0x08},
 
 		{"da", required_argument, 0, 0x05},
 		{"a", required_argument, 0, 'a'},
@@ -251,12 +284,19 @@ int parse_options(int argc, char * argv[]) {
 	};
 
 	while((c = getopt_long(argc, argv, "a:b:h:l:", generic_options, &option_index)) != -1) {
-		if (c == '?')
+		if (c == '?') {
+			usage();
 			return 1;
+		}
 
-		unsigned long optvalul = strtoul(optarg, NULL, 10);
-		float optvalf = strtof(optarg, NULL);
-		 if (c == 0x01) {
+		unsigned long optvalul = 0;
+		float optvalf = 0;
+		if (optarg) {
+			optvalul = strtoul(optarg, NULL, 10);
+			optvalf = strtof(optarg, NULL);
+		}
+
+		if (c == 0x01) {
 			emu.animated = true;
 
 		} else if (c == 0x02) {
@@ -276,6 +316,10 @@ int parse_options(int argc, char * argv[]) {
 
 		} else if (c == 0x06) {
 			emu.dh = optvalf;
+
+		} else if (c == 0x08) {
+			usage();
+			return 2;
 
 		} else if (c == 'a') {
 			emu.a = optvalf;
