@@ -195,6 +195,8 @@ void motion(int x, int y) {
 void keyboard(unsigned char key, int x, int y) {
 	if (key == 27) // escape
 		exit(0);
+	else if (key == 111) // o
+		emu.animated = false, emu.trace = true, ani = 1;
 	else if (key == 116) // t
 		emu.trace = !emu.trace;
 	else if (key == 32) // space
@@ -244,9 +246,10 @@ void usage() {
 	          << std::endl
 	          << "Orientation is chosen by draging mouse on window" << std::endl
 	          << "Zoom is chosen by clicking on window (more zoom on top of window)" << std::endl
-	          << "Key \"t\" change trace status" << std::endl
+	          << "Key \"t\" changes trace status" << std::endl
+	          << "Key \"o\" stops animation with trace at 100%" << std::endl
 	          << "Key \"ESC\" closes emulator" << std::endl
-	          << "Key \"SPACE\" change animation status" << std::endl
+	          << "Key \"SPACE\" changes animation status" << std::endl
 	          << std::endl
 	          << "Have fun" << std::endl;
 }
