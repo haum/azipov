@@ -225,6 +225,7 @@ void usage() {
 	          << "    --no-trace      starts program with led trace disabled" << std::endl
 	          << "    --width <w>     starts window with a specified width" << std::endl
 	          << "    --height <h>    starts window with a specified height" << std::endl
+	          << "    --turns <t>     number of turns to show" << std::endl
 	          << std::endl
 	          << "    --da <da>       angular resolution in degrees" << std::endl
 	          << "    --a <a>         size of inner wheel" << std::endl
@@ -239,7 +240,7 @@ void usage() {
 	          << "A led is described in following syntax: [wheel:]radius[@angle]" << std::endl
 	          << "e.g. 1:5@120 is a led on wheel number 1 located at a distance of 5 and an angle of 120 degrees" << std::endl
 	          << std::endl
-	          << "Sample command line: --h 0 --animated --no-trace --a 2 --b 2 --nr 3 -l 4@120 -l 1:4@240 -l 2:4" << std::endl
+	          << "Sample command line: --h 0 --animated --no-trace --a 2 --b 2 --nr 3 -l 4@120 -l 1:4@240 -l 2:4 --turns 1" << std::endl
 	          << std::endl
 	          << "Orientation is chosen by draging mouse on window" << std::endl
 	          << "Zoom is chosen by clicking on window (more zoom on top of window)" << std::endl
@@ -269,6 +270,7 @@ int parse_options(int argc, char * argv[]) {
 		{"no-trace", no_argument, 0, 0x02},
 		{"width", required_argument, 0, 0x03},
 		{"height", required_argument, 0, 0x04},
+		{"turns", required_argument, 0, 0x07},
 		{"help", no_argument, 0, 0x08},
 
 		{"da", required_argument, 0, 0x05},
@@ -316,6 +318,9 @@ int parse_options(int argc, char * argv[]) {
 
 		} else if (c == 0x06) {
 			emu.dh = optvalf;
+
+		} else if (c == 0x07) {
+			emu.turns = optvalul;
 
 		} else if (c == 0x08) {
 			usage();
