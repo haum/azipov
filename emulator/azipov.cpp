@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
+#include <cstring>
 #include <iostream>
 #include <unistd.h>
 #include <getopt.h>
@@ -27,11 +28,86 @@ struct {
 	float angle_z = 0.0f;
 } camera;
 
+struct Led {
+	int wheel_nr; // Number of wheel on which the led bar is present
+	float r; // Radius of led bar position
+	float alpha; // Angle of lef bar position
+};
+
 /** POV emulation parameters **/
 struct {
-	bool animated;
-	std::vector <float> leds;
+	bool animated; // Is it animated ?
+	bool trace; // Should a trace to be printed ?
+	std::vector <Led> leds; // List of leds
+	int turns; // Number of turns to show
+	int nr; // Number of wheels
+	float da; // Angular step to display
+	float a; // Radius of inner circle
+	float b; // Radius of outer circle
+	float dh; // Height step
+	float h; // Height
 } emu;
+
+/** Draw all leds of a wheel, and optionnaly the wheel itself
+  * @param [in] wheel_nr Wheel number
+  * @param [in] angle    Current angle of the wheel
+  * @param [in] circle   Should wheel be printed
+  */
+void draw_leds(int wheel_nr, float angle, bool circle = false) {
+	glPushMatrix();
+
+	// Global position
+	glRotatef(angle, 0, 0, 1);
+	glTranslatef(emu.a + emu.b, 0, 0);
+	glRotatef(-angle, 0, 0, 1);
+	glRotatef(angle * (emu.a+emu.b)/(emu.b), 0, 0, 1);
+
+	// Draw circle
+	if (circle) {
+		int circle_pts = emu.b * 9;
+		glBegin(GL_LINE_LOOP);
+		glColor3d(0, 0, 0.3f);
+		for (int i = 0; i < circle_pts; ++i)
+			glVertex3d(
+				emu.b * cos(i * 2 * M_PI / circle_pts),
+				emu.b * sin(i * 2 * M_PI / circle_pts),
+				0
+			);
+		glEnd();
+		for (Led & led: emu.leds) {
+			if (wheel_nr != led.wheel_nr)
+				continue;
+
+			glBegin(GL_LINES);
+			glVertex3d(0, 0, 0);
+			glVertex3d(
+				led.r * cos(led.alpha * M_PI / 180),
+				led.r * sin(led.alpha * M_PI / 180),
+				0
+			);
+			glEnd();
+		}
+	}
+
+	// Draw leds
+	for (Led & led: emu.leds) {
+		if (wheel_nr != led.wheel_nr)
+			continue;
+
+		glBegin(GL_POINTS);
+		glColor3d(1, 0, 0);
+		for (float h = 0; h <= emu.h; h += emu.dh) {
+			glVertex3d(
+				led.r * cos(led.alpha * M_PI / 180),
+				led.r * sin(led.alpha * M_PI / 180),
+				h
+			);
+		}
+		glEnd();
+	}
+
+	glPopMatrix();
+}
 
 /** Display function called to redraw scene **/
 void display() {
@@ -39,7 +115,7 @@ void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glPointSize(2.0);
+	glPointSize(3.0);
 
 	// Camera
 	gluLookAt(
@@ -60,7 +136,31 @@ void display() {
 	glVertex3d(10, -10, 0);
 	glEnd();
 
-	// Points
+	// Circle A
+	int circle_pts = emu.a * 9;
+	glBegin(GL_LINE_LOOP);
+	glColor3d(0, 0.3f, 0);
+	for (int i = 0; i < circle_pts; ++i)
+		glVertex3d(
+			emu.a * cos(i * 2 * M_PI / circle_pts),
+			emu.a * sin(i * 2 * M_PI / circle_pts),
+			0
+		);
+	glEnd();
+
+	// Leds
+	if (emu.trace) {
+		for (float a = 0; a < ani * emu.turns * 360; a += emu.da) {
+			for (int n = 0; n < emu.nr; ++n) {
+				draw_leds(n, a + 360 * n / emu.nr, ((a + emu.da) > (ani * emu.turns * 360)));
+			}
+		}
+	} else {
+		float a = ani * emu.turns * 360;
+		for (int n = 0; n < emu.nr; ++n) {
+			draw_leds(n, a + 360 * n / emu.nr, ((a + emu.da) > (ani * emu.turns * 360)));
+		}
+	}
 
 	// Flush
 	glFlush();
@@ -93,9 +193,11 @@ void motion(int x, int y) {
 
 /** Keyboard function called when ordinary key is pressed **/
 void keyboard(unsigned char key, int x, int y) {
-	if (key == 27)
+	if (key == 27) // escape
 		exit(0);
-	else if (key == 32)
+	else if (key == 116) // t
+		emu.trace = !emu.trace;
+	else if (key == 32) // space
 		emu.animated = !emu.animated;
 }
 
@@ -109,7 +211,7 @@ void idle() {
 	}
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &wakeup, NULL);
 	if (emu.animated) {
-		ani += 0.01;
+		ani += 0.01 / emu.turns;
 		if (ani > 1)
 			ani = 0;
 	}
@@ -122,29 +224,107 @@ int parse_options(int argc, char * argv[]) {
 	int c;
 	int option_index = 0;
 	emu.animated = false;
+	emu.trace = true;
+	emu.nr = 2;
+	emu.turns = 5;
+	emu.da = 2;
+	emu.a = 2;
+	emu.b = 2.5;
+	emu.dh = 0.7;
+	emu.h = 10;
 	struct option generic_options[] = {
 		{"animated", no_argument, 0, 0x01},
-		{"width", required_argument, 0, 0x02},
-		{"height", required_argument, 0, 0x03},
+		{"no-trace", no_argument, 0, 0x02},
+		{"width", required_argument, 0, 0x03},
+		{"height", required_argument, 0, 0x04},
+
+		{"da", required_argument, 0, 0x05},
+		{"a", required_argument, 0, 'a'},
+		{"b", required_argument, 0, 'b'},
+		{"dh", required_argument, 0, 0x06},
+		{"h", required_argument, 0, 'h'},
+		{"nr", required_argument, 0, 'n'},
 
 		{"led", required_argument, 0, 'l'},
 
 		{0, 0, 0, 0}
 	};
-	while((c = getopt_long(argc, argv, "l:", generic_options, &option_index)) != -1) {
+
+	while((c = getopt_long(argc, argv, "a:b:h:l:", generic_options, &option_index)) != -1) {
+		if (c == '?')
+			return 1;
+
 		unsigned long optvalul = strtoul(optarg, NULL, 10);
 		float optvalf = strtof(optarg, NULL);
-		if (c == 0x01) {
+		 if (c == 0x01) {
 			emu.animated = true;
 
-		} else if (c == 0x02 && optvalul) {
-			screen.width = optvalul;
+		} else if (c == 0x02) {
+			emu.trace = false;
 
 		} else if (c == 0x03 && optvalul) {
+			screen.width = optvalul;
+
+		} else if (c == 0x04 && optvalul) {
 			screen.height = optvalul;
 
+		} else if (c == 0x05) {
+			emu.da = optvalf;
+
+		} else if (c == 'h') {
+			emu.h = optvalf;
+
+		} else if (c == 0x06) {
+			emu.dh = optvalf;
+
+		} else if (c == 'a') {
+			emu.a = optvalf;
+
+		} else if (c == 'b') {
+			emu.b = optvalf;
+
+		} else if (c == 'n') {
+			emu.nr = optvalul;
+
 		} else if (c == 'l') {
-			emu.leds.push_back(optvalf);
+			char *str, *t1, *t2, *t3;
+			str = optarg;
+			t1 = strpbrk(str, ":");
+			if (t1) {
+				*t1 = 0;
+				str = t1 + 1;
+				t1 = optarg;
+			}
+			t2 = strpbrk(str, "@");
+			if (t2) {
+				*t2 = 0;
+				t3 = t2 + 1;
+				t2 = str;
+			} else {
+				t2 = str;
+				t3 = 0;
+			}
+
+			Led l;
+			l.wheel_nr = (!t1 || !*t1) ? 0 : strtoul(t1, NULL, 10);
+			l.r = (!t2 || !*t2) ? emu.b : strtof(t2, NULL);
+			l.alpha = (!t3 || !*t3) ? 0 : strtof(t3, NULL);
+			emu.leds.push_back(l);
+		}
+	}
+
+	if (emu.leds.size() == 0) {
+		for (int n = 0; n < emu.nr; ++n) {
+			Led l;
+			const float dephasage = 76;
+			l.wheel_nr = n;
+			l.r = emu.a + emu.b;
+			l.alpha = 0 + n * dephasage / emu.nr;
+			emu.leds.push_back(l);
+			l.alpha = 120 + n * dephasage / emu.nr;
+			emu.leds.push_back(l);
+			l.alpha = 240 + n * dephasage / emu.nr;
+			emu.leds.push_back(l);
 		}
 	}
 
