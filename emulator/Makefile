@@ -1,7 +1,7 @@
-SRC=azipov.c
+SRC=azipov.cpp
 APP=azipov_emu
-CXXFLAGS=-std=c++11
-LDFLAGS=-l GL -l GLU -lglut
+CXXFLAGS=-std=c++11 -g
+LDFLAGS=-l GL -l GLU -lglut -g
 
 ${APP}:${SRC}
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LDFLAGS}
