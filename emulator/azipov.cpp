@@ -48,6 +48,27 @@ struct {
 	float h; // Height
 } emu;
 
+/** Color **/
+struct color {
+	uint8_t r; // Red
+	uint8_t g; // Green
+	uint8_t b; // Blue
+};
+
+/** Gives a color depending on led position
+  * @param [in] x X position in -1..1 range
+  * @param [in] y Y position in -1..1 range
+  * @param [in] z Z position in 0..1 range
+  * @return color to set
+  */
+color color_chooser(float x, float y, float z) {
+	color ret;
+	ret.r = 255;
+	ret.g = 0;
+	ret.b = 0;
+	return ret;
+}
+
 /** Draw all leds of a wheel, and optionnaly the wheel itself
   * @param [in] wheel_nr Wheel number
   * @param [in] angle    Current angle of the wheel
@@ -90,18 +111,32 @@ void draw_leds(int wheel_nr, float angle, bool circle = false) {
 	}
 
 	// Draw leds
+	static float max_x = 1, max_y = 1;
 	for (Led & led: emu.leds) {
 		if (wheel_nr != led.wheel_nr)
 			continue;
 
 		glBegin(GL_POINTS);
-		glColor3d(1, 0, 0);
 		for (float h = 0; h <= emu.h; h += emu.dh) {
-			glVertex3d(
-				led.r * cos(led.alpha * M_PI / 180),
-				led.r * sin(led.alpha * M_PI / 180),
-				h
-			);
+			float x, y, z;
+			color c;
+			// Hum, there is probably a better way to compute sin/cos with matrix since we do it in incremental way
+			x = (emu.a + emu.b) * sin(angle * M_PI / 180 ) + led.r * sin(((emu.a+emu.b)/(emu.b) * angle + led.alpha) * M_PI / 180);
+			y = (emu.a + emu.b) * cos(angle * M_PI / 180 ) + led.r * cos(((emu.a+emu.b)/(emu.b) * angle + led.alpha) * M_PI / 180);
+			if (fabs(x) > max_x) max_x = fabs(x);
+			if (fabs(y) > max_y) max_y = fabs(y);
+			x /= max_x;
+			y /= max_y;
+			z = (emu.h > 0) ? h / emu.h : h;
+			c = color_chooser(x, y, z);
+			if (c.r || c.g || c.b) {
+				glColor3d(c.r*(1.0/255), c.g*(1.0/255), c.b*(1.0/255));
+				glVertex3d(
+					led.r * cos(led.alpha * M_PI / 180),
+					led.r * sin(led.alpha * M_PI / 180),
+					h
+				);
+			}
 		}
 		glEnd();
 	}
