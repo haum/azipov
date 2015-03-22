@@ -469,6 +469,14 @@ int main(int argc, char * argv[]) {
 	int parsing = parse_options(argc, argv);
 	if (parsing)
 		return parsing;
+	std::cout << "animated: " << emu.animated << std::endl
+	          << "turns: " << emu.turns << std::endl
+	          << "da: " << emu.da << std::endl
+	          << "a: " << emu.a << std::endl
+	          << "b: " << emu.b << std::endl
+	          << "dh: " << emu.dh << std::endl
+	          << "h: " << emu.h << std::endl
+	          << "nr: " << emu.nr << std::endl;
 
 	// Init glut
 	glutInit(&argc, argv);
