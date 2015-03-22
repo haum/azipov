@@ -6,6 +6,7 @@
 #include <ctime>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <getopt.h>
 
@@ -286,6 +287,7 @@ void usage() {
 	          << "    --nr <nr>       number of wheels" << std::endl
 	          << std::endl
 	          << "    --led|-l <led>  add a led (see below)" << std::endl
+	          << "    --pic|-p <p>    read from picture file p" << std::endl
 	          << std::endl
 	          << std::endl
 	          << "A led is described in following syntax: [wheel:]radius[@angle]" << std::endl
@@ -306,6 +308,7 @@ void usage() {
 /** Parse options **/
 int parse_options(int argc, char * argv[]) {
 	// Generic parameters
+	char * picturename = nullptr;
 	int c;
 	int option_index = 0;
 	emu.animated = false;
@@ -341,11 +344,12 @@ int parse_options(int argc, char * argv[]) {
 		{"nr", required_argument, 0, 'n'},
 
 		{"led", required_argument, 0, 'l'},
+		{"pic", required_argument, 0, 'p'},
 
 		{0, 0, 0, 0}
 	};
 
-	while((c = getopt_long(argc, argv, "a:b:h:l:", generic_options, &option_index)) != -1) {
+	while((c = getopt_long(argc, argv, "a:b:h:l:p:", generic_options, &option_index)) != -1) {
 		if (c == '?') {
 			usage();
 			return 1;
@@ -419,6 +423,10 @@ int parse_options(int argc, char * argv[]) {
 			l.r = (!t2 || !*t2) ? emu.b : strtof(t2, NULL);
 			l.alpha = (!t3 || !*t3) ? 0 : strtof(t3, NULL);
 			emu.leds.push_back(l);
+		} else if (c == 'p') {
+			if (picturename != nullptr)
+				std::cerr << "WARNING " << picturename << " will not be used because another picture option is set" << std::endl;
+			picturename = optarg;
 		}
 	}
 
@@ -435,6 +443,21 @@ int parse_options(int argc, char * argv[]) {
 			l.alpha = 240 + n * dephasage / emu.nr;
 			emu.leds.push_back(l);
 		}
+	}
+
+	if (picturename != nullptr) {
+		int x, y, z;
+		std::ifstream f(picturename);
+		for (x = 0; x < PICTURE_X; ++x) {
+			for (y = 0; y < PICTURE_Y; ++y) {
+				for (z = 0; z < PICTURE_Z; ++z) {
+					picture[x][y][z].r = f.get();
+					picture[x][y][z].g = f.get();
+					picture[x][y][z].b = f.get();
+				}
+			}
+		}
+		f.close();
 	}
 
 	return 0;
