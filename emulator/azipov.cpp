@@ -55,6 +55,12 @@ struct color {
 	uint8_t b; // Blue
 };
 
+/** Colors Buffer **/
+#define PICTURE_X 24
+#define PICTURE_Y 24
+#define PICTURE_Z 24
+color picture[PICTURE_X][PICTURE_Y][PICTURE_Z];
+
 /** Gives a color depending on led position
   * @param [in] x X position in -1..1 range
   * @param [in] y Y position in -1..1 range
@@ -62,11 +68,19 @@ struct color {
   * @return color to set
   */
 color color_chooser(float x, float y, float z) {
-	color ret;
-	ret.r = 255;
-	ret.g = 0;
-	ret.b = 0;
-	return ret;
+	if (x < -1) x = -1;
+	if (x > 1) x = 1;
+	if (y < -1) y = -1;
+	if (y > 1) y = 1;
+	if (z < 0) z = 0;
+	if (z > 1) z = 1;
+
+	int ix, iy, iz;
+	ix = (x + 1) / 2 * (PICTURE_X - 1);
+	iy = (y + 1) / 2 * (PICTURE_Y - 1);
+	iz = z * (PICTURE_Z - 1);
+
+	return picture[ix][iy][iz];
 }
 
 /** Draw all leds of a wheel, and optionnaly the wheel itself
@@ -302,7 +316,15 @@ int parse_options(int argc, char * argv[]) {
 	emu.a = 2;
 	emu.b = 2.5;
 	emu.dh = 0.7;
-	emu.h = 10;
+	emu.h = 11.2;
+	for (int ix = 0; ix < PICTURE_X; ++ix) {
+		for (int iy = 0; iy < PICTURE_Y; ++iy) {
+			for (int iz = 0; iz < PICTURE_Z; ++iz) {
+				color c = {255, 0, 0};
+				picture[ix][iy][iz] = c;
+			}
+		}
+	}
 	struct option generic_options[] = {
 		{"animated", no_argument, 0, 0x01},
 		{"no-trace", no_argument, 0, 0x02},
